@@ -626,4 +626,3 @@ if scanner.lookahead() != None:
 # It can be assembled to a class file by Jasmin: http://jasmin.sourceforge.net/
 
 print(ast.code(), end='')
-
