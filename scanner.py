@@ -12,7 +12,6 @@ class Scanner:
            current_token holds the most recently found token and the
            corresponding part of input_string.'''
         # source code of the program to be compiled
-        #raw_data = open(input_file)
         self.input_string = input_file.read()
         # index where the unprocessed part of input_string starts
         self.current_char_index = 0
@@ -22,14 +21,11 @@ class Scanner:
     def skip_white_space(self):
         '''Consumes all characters in input_string up to the next
            non-white-space character.'''
-        """if the string is not yet finished, the code check for space, get out the loop when it found non-space data"""
-        while len(self.input_string[self.current_char_index:]) != 0:
-            #print(self.input_string[self.current_char_index])
+        while self.current_char_index < len(self.input_string):
             if self.input_string[self.current_char_index].isspace():
                 self.current_char_index += 1
             else:
-                return
-
+                break                
 
     def no_token(self):
         '''Stop execution if the input cannot be matched to a token.'''
@@ -47,25 +43,20 @@ class Scanner:
         self.skip_white_space()
         # find the longest prefix of input_string that matches a token
         token, longest = None, ''
-        #print("get: This is the current place {}".format(self.input_string[self.current_char_index:]))
         for (t, r) in Token.token_regexp:
             match = re.match(r, self.input_string[self.current_char_index:])
             if match and match.end() > len(longest):
                 token, longest = t, match.group()
-
-        """if a unidentify token and the there is still data left in the string, no token raise"""
-        if token == None and (self.current_char_index < (len(self.input_string))):
-            raise Exception(self.no_token())
-
+        if token == None and longest == '':
+            if self.current_char_index < len(self.input_string) - len(longest):
+                raise Exception(self.no_token())
         # consume the token by moving the index to the end of the matched part
         self.current_char_index += len(longest)
         return (token, longest)
 
-
     def lookahead(self):
         '''Returns the next token without consuming it.
            Returns None if there is no next token.'''
-        #print("lookahead: This is the new token {}".format(self.current_token[0]))
         return self.current_token[0]
 
     def unexpected_token(self, found_token, expected_tokens):
@@ -81,21 +72,18 @@ class Scanner:
            expected_tokens. Calls unexpected_token(...) otherwise.
            If the token is a number or an identifier, not just the
            token but a pair of the token and its value is returned.'''
-        data = self.current_token
-        """data[0] = token, data[1] = value"""
-        self.current_token = self.get_token()
-        if data[0] in expected_tokens:
-            if data[0] == "NUM":
-                return data[0], data[1]
-
-            elif data[0] == "ID":
-                return data[0], data[1]
-
+        token, longest = self.current_token
+        if token in expected_tokens:
+            self.current_token = self.get_token()
+            if token == 'ID':
+                return token, longest
+            elif token == 'NUM':
+                return token, longest
             else:
-                return data[0]
+                return token
         else:
-            raise Exception (self.unexpected_token(token, *expected_tokens))
-
+            raise Exception(self.unexpected_token(token, *expected_tokens))
+        
 
 class Token:
     # The following enumerates all tokens.
@@ -105,13 +93,13 @@ class Token:
     IF    = 'IF'
     THEN  = 'THEN'
     WHILE = 'WHILE'
+    READ  = 'READ'
+    WRITE = 'WRITE'    
     SEM   = 'SEM'
     BEC   = 'BEC'
     LESS  = 'LESS'
     EQ    = 'EQ'
     GRTR  = 'GRTR'
-    READ  = 'READ'
-    WRITE = 'WRITE'
     LEQ   = 'LEQ'
     NEQ   = 'NEQ'
     GEQ   = 'GEQ'
@@ -123,6 +111,7 @@ class Token:
     RPAR  = 'RPAR'
     NUM   = 'NUM'
     ID    = 'ID'
+    
 
     # The following list gives the regular expression to match a token.
     # The order in the list matters for mimicking Flex behaviour.
@@ -135,24 +124,24 @@ class Token:
         (IF,    'if'),
         (THEN,  'then'),
         (WHILE, 'while'),
-        (READ, 'read'),
-        (WRITE, 'write'),
+        (READ,  'read'),
+        (WRITE, 'write'),        
         (SEM,   ';'),
         (BEC,   ':='),
         (LESS,  '<'),
         (EQ,    '='),
         (GRTR,  '>'),
         (LEQ,   '<='),
+        (NEQ,   '!='),
         (GEQ,   '>='),
         (ADD,   '\\+'), # + is special in regular expressions
         (SUB,   '-'),
+        (MUL,   '\\*'),
+        (DIV,   '/'),        
         (LPAR,  '\\('), # ( is special in regular expressions
         (RPAR,  '\\)'), # ) is special in regular expressions
-        (ID,    '[a-z]+'),
         (NUM,   '[0-9]+'),
-        (NEQ,   '!='),
-        (MUL,   '\\*'),
-        (DIV,   '\\/'),
+        (ID,    '[a-z]+'),
     ]
 
 # Initialise scanner.
@@ -169,4 +158,3 @@ while token != None:
     else:
         print(scanner.consume(token))
     token = scanner.lookahead()
-
