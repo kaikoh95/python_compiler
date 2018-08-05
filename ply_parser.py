@@ -9,7 +9,6 @@ package can be installed with the following command:
     pip3 install ply
 This requires Internet access to download the package.
 """
-
 import ply.lex as lex
 import ply.yacc as yacc
 import sys
@@ -27,14 +26,14 @@ not the regular expressions matching them.
 
 # reserved words
 reserved = {
-    'do': 'DO',
-    'else': 'ELSE',
-    'end': 'END',
-    'if': 'IF',
-    'then': 'THEN',
+    'do'   : 'DO',
+    'else' : 'ELSE',
+    'end'  : 'END',
+    'if'   : 'IF',
+    'then' : 'THEN',
     'while': 'WHILE',
     'read' : 'READ',
-    'write': 'WRITE'    
+    'write': 'WRITE',
 }
 
 # all token types
@@ -80,25 +79,21 @@ t_LESS = r'<'
 t_EQ = r'='
 t_GRTR = r'>'
 t_LEQ = r'<='
-t_NEQ  = r'!='
 t_GEQ = r'>='
 t_ADD = r'\+'
 t_SUB = r'-'
-t_MUL  = r'\*'
-t_DIV  = r'/'
 t_LPAR = r'\('
 t_RPAR = r'\)'
-t_NUM  = r'd+'
-
-### add code for inequality, multiplication, division and numbers ###
+t_NEQ  = r'!='
+t_MUL  = r'\*'
+t_DIV  = r'\/'
+t_NUM  = r'\d+'
 
 def t_ID(t):
     r'[a-z]+'
+    t.type = 'ID'
     if t.value in reserved:
-        t.type = reserved[t.value]  
-    else:
-        t.type = 'ID'        
-    ### add code for reserved words using the dictionary above ###
+        t.type = reserved[t.value]
     return t
 
 # rule to track line numbers
@@ -116,6 +111,8 @@ def t_error(t):
 
 def indent(s, level):
     return '    '*level + s + '\n'
+
+# Show all tokens in the input.
 
 # Each of the following classes is a kind of node in the abstract syntax tree.
 # indented(level) returns a string that shows the tree levels by indentation.
@@ -141,21 +138,6 @@ class Statements_AST:
         for st in self.statements:
             result += st.indented(level+1)
         return result
-    
-class If_Else_AST:
-    def __init__(self, condition, then, again):
-        self.condition = condition
-        self.then = then
-        self.again = again
-    def __repr__(self):
-        return 'if ' + repr(self.condition) + ' then ' + \
-                       repr(self.then) + ' else ' + \
-                       repr(self.again) + 'end'
-    def indented(self, level):
-        return indent('If-Else', level) + \
-               self.condition.indented(level+1) + \
-               self.then.indented(level+1) + \
-               self.again.indented(level+1)
 
 class If_AST:
     def __init__(self, condition, then):
@@ -168,6 +150,20 @@ class If_AST:
         return indent('If', level) + \
                self.condition.indented(level+1) + \
                self.then.indented(level+1)
+
+class If_Else_AST:
+    def __init__(self, condition, then, else_then):
+        self.condition = condition
+        self.then = then
+        self.else_then = else_then
+    def __repr__(self):
+        return 'If-Else ' + repr(self.condition) + \
+                       repr(self.then) + repr(self.else_then) + ' end'
+    def indented(self, level):
+        return indent('If-Else', level) + \
+               self.condition.indented(level+1) + \
+               self.then.indented(level+1) + \
+               self.else_then.indented(level + 1)
 
 class While_AST:
     def __init__(self, condition, body):
@@ -300,25 +296,30 @@ def p_statements_statements(p):
 def p_statement(p):
     '''Statement : If
                  | While
-                 | Assignment'''
+                 | Assignment
+                 | Read
+                 | Write'''
     p[0] = p[1]
 
 def p_if(p):
-    'If : IF Comparison THEN Statements END'
-    p[0] = If_AST(p[2], p[4])
+    '''If : IF Comparison THEN Statements END
+          | IF Comparison THEN Statements ELSE Statements END'''
+    if len(p)>6:
+        p[0] = If_Else_AST(p[2], p[4], p[6])
+    else:
+        p[0] = If_AST(p[2], p[4])
 
 def p_while(p):
     'While : WHILE Comparison DO Statements END'
     p[0] = While_AST(p[2], p[4])
-    
+
 def p_read(p):
-    'Read : READ id'
+    'Read : READ Id'
     p[0] = Read_AST(p[2])
 
 def p_write(p):
-    'Write : WRITE Exp'
+    'Write : WRITE Expression'
     p[0] = Write_AST(p[2])
-
 
 def p_assignment(p):
     'Assignment : Id BEC Expression'
@@ -356,21 +357,23 @@ def p_expression_id(p):
     'Expression : Id'
     p[0] = p[1]
 
+
 def p_id(p):
     'Id : ID'
     p[0] = Identifier_AST(p[1])
+
 
 def p_error(p):
     print("syntax error")
     sys.exit()
 
+
 scanner = lex.lex()
 
 # Uncomment the following to test the scanner without the parser.
 # Show all tokens in the input.
-#
 # scanner.input(sys.stdin.read())
-#
+
 # for token in scanner:
 #     if token.type in ['NUM', 'ID']:
 #         print(token.type, token.value)
