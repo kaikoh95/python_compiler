@@ -89,7 +89,6 @@ t_LPAR = r'\('
 t_RPAR = r'\)'
 t_NUM  = r'[0-9]+'
 
-### add code for inequality, multiplication, division and numbers ###
 
 def t_ID(t):
     r'[a-z]+'
@@ -97,7 +96,6 @@ def t_ID(t):
         t.type = reserved[t.value]  
     else:
         t.type = 'ID'        
-    ### add code for reserved words using the dictionary above ###
     return t
 
 # rule to track line numbers
